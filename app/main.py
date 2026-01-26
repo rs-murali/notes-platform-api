@@ -1,30 +1,38 @@
-# app/main.py
-from dependency_injector.wiring import inject, Provide
+from fastapi import FastAPI
+import uvicorn
 
 from app.core.container import Container
-from app.db.postgres import PostgresPool
 
 
-@inject
-def main(
-    postgres_pool: PostgresPool = Provide[Container.postgres_pool],
-):
-    print("Hello from notes-api!")
-    conn = None
-    try:
-        conn = postgres_pool.get_conn()
-        with conn.cursor() as cur:
-            cur.execute("SELECT 1;")
-            print("Successfully acquired a connection from the pool.")
-    finally:
-        if conn:
-            postgres_pool.release_conn(conn)
-            print("Connection released back to the pool.")
-
-
-if __name__ == "__main__":
+def create_app() -> FastAPI:
+    # Initialize DI container
     container = Container()
     container.init_resources()
-    container.wire(modules=[__name__])
 
-    main()
+    app = FastAPI(title="Notes API")
+
+    # Attach container to app
+    app.container = container
+
+    # Wire dependency-injector modules
+    container.wire(
+        modules=[
+            "app.api.users",
+            "app.api.notes",
+            "app.services.user_service",
+            "app.services.note_service",
+        ]
+    )
+
+    return app
+
+
+app = create_app()
+
+if __name__ == "__main__":
+    uvicorn.run(
+        "app.main:app",   
+        host="0.0.0.0",
+        port=8000,
+        reload=True,
+    )
