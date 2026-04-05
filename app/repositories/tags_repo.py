@@ -59,23 +59,19 @@ class TagRepository:
             self.db.release_conn(conn)
 
 
-    def link_tags_to_note(
-        self, note_id: str, tag_ids: List[str]
-    ) -> None:
-        if not tag_ids:
-            return
-
+    def list_tags(self, user_id: str) -> List[dict]:
         conn = self.db.get_conn()
         try:
             with conn.cursor() as cur:
-                cur.executemany(
+                cur.execute(
                     """
-                    INSERT INTO note_tags (note_id, tag_id)
-                    VALUES (%s, %s)
-                    ON CONFLICT DO NOTHING;
+                    SELECT id, name
+                    FROM tags
+                    WHERE user_id = %s;
                     """,
-                    [(note_id, tag_id) for tag_id in tag_ids],
+                    (user_id,),
                 )
-                conn.commit()
+                rows = cur.fetchall()
+                return [{"id": row[0], "name": row[1]} for row in rows]
         finally:
             self.db.release_conn(conn)

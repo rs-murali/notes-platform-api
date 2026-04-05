@@ -2,7 +2,7 @@ from typing import Optional
 from psycopg2.extras import RealDictCursor
 
 from app.db import PostgresPool
-from app.core import User, UserCreate, UserUpdate
+from app.core.models import User, UserCreate, UserUpdate
 
 
 class UserRepository:
@@ -25,7 +25,7 @@ class UserRepository:
         finally:
             self.db.release_conn(conn)
 
-    def get_user_by_id(self, user_id: int) -> Optional[User]:
+    def get_user_by_id(self, user_id: str) -> Optional[User]:
         conn = self.db.get_conn()
         try:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
@@ -47,7 +47,7 @@ class UserRepository:
         finally:
             self.db.release_conn(conn)
 
-    def create_user(self, user: UserCreate) -> int:
+    def create_user(self, user: UserCreate) -> str:
         conn = self.db.get_conn()
         try:
             with conn.cursor() as cur:
@@ -70,18 +70,18 @@ class UserRepository:
         finally:
             self.db.release_conn(conn)
 
-    def update_user(self, user: UserUpdate) -> bool:
+    def update_user(self, user_id: str, user: UserUpdate) -> bool:
         conn = self.db.get_conn()
         try:
             with conn.cursor() as cur:
                 cur.execute(
                     """
                     UPDATE users
-                    SET name = %s,
-                        email = %s
+                    SET name = COALESCE(%s, name),
+                        email = COALESCE(%s, email)
                     WHERE id = %s;
                     """,
-                    (user.name, user.email, user.id),
+                    (user.name, user.email, user_id),
                 )
 
                 updated = cur.rowcount > 0
@@ -96,7 +96,7 @@ class UserRepository:
             self.db.release_conn(conn)
 
 
-    def delete_user(self, user_id: int) -> bool:
+    def delete_user(self, user_id: str) -> bool:
         conn = self.db.get_conn()
         try:
             with conn.cursor() as cur:

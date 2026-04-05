@@ -11,7 +11,7 @@ class UserUpdate(BaseModel):
     email: Optional[EmailStr] = None
 
 class UserResponse(BaseModel):
-    id: int
+    id: str
     name: str
     email: EmailStr
 
@@ -21,31 +21,35 @@ class UserResponse(BaseModel):
 class NoteCreate(BaseModel):    
     title: str = Field(..., max_length=100)
     content: str
+    status: str = "todo"
     tags: Optional[list[str]] = None
 
 class NoteUpdate(BaseModel):
     title: Optional[str] = Field(None, max_length=100)
     content: Optional[str] = None
+    status: Optional[str] = None
     tags: Optional[list[str]] = None
 
 class NoteResponse(BaseModel):
-    id: int
+    id: str
     title: str
     content: str
+    status: str
     tags: Optional[list[str]] = None
-    user_id: int
+    user_id: str
 
 class Note(BaseModel):
-    id: int
+    id: str
     title: str
     content: str
+    status: str
     tags: Optional[list[str]]
-    user_id: int
+    user_id: str
     class Config:
         from_attributes = True
         
 class User(BaseModel):
-    id: int
+    id: str
     name: str
     email: EmailStr
     class Config:

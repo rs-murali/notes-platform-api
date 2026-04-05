@@ -25,6 +25,7 @@ class NoteRepository:
                         n.id,
                         n.title,
                         n.content,
+                        n.status,
                         COALESCE(
                             array_agg(t.name) FILTER (WHERE t.name IS NOT NULL),
                             '{}'
@@ -44,7 +45,7 @@ class NoteRepository:
                             OR n.title ILIKE %s
                             OR n.content ILIKE %s
                           )
-                    GROUP BY n.id, n.title, n.content
+                    GROUP BY n.id, n.title, n.content, n.status
                     ORDER BY n.created_at DESC
                     LIMIT %s OFFSET %s;
                     """,
@@ -63,7 +64,8 @@ class NoteRepository:
                         "id": row[0],
                         "title": row[1],
                         "content": row[2],
-                        "tags": row[3],
+                        "status": row[3],
+                        "tags": row[4],
                     }
                     for row in rows
                 ]
@@ -84,6 +86,7 @@ class NoteRepository:
                         n.id,
                         n.title,
                         n.content,
+                        n.status,
                         COALESCE(
                             array_agg(t.name) FILTER (WHERE t.name IS NOT NULL),
                             '{}'
@@ -94,7 +97,7 @@ class NoteRepository:
                     WHERE n.id = %s
                       AND n.user_id = %s
                       AND n.is_deleted = false
-                    GROUP BY n.id, n.title, n.content;
+                    GROUP BY n.id, n.title, n.content, n.status;
                     """,
                     (note_id, user_id),
                 )
@@ -107,7 +110,8 @@ class NoteRepository:
                     "id": row[0],
                     "title": row[1],
                     "content": row[2],
-                    "tags": row[3],
+                    "status": row[3],
+                    "tags": row[4],
                 }
         finally:
             self.db.release_conn(conn)
@@ -118,17 +122,18 @@ class NoteRepository:
         user_id: str,
         title: str,
         content: str,
+        status: str = "todo",
     ) -> str:
         conn = self.db.get_conn()
         try:
             with conn.cursor() as cur:
                 cur.execute(
                     """
-                    INSERT INTO notes (user_id, title, content)
-                    VALUES (%s, %s, %s)
+                    INSERT INTO notes (user_id, title, content, status)
+                    VALUES (%s, %s, %s, %s)
                     RETURNING id;
                     """,
-                    (user_id, title, content),
+                    (user_id, title, content, status),
                 )
                 note_id = cur.fetchone()[0]
                 conn.commit()
@@ -140,8 +145,9 @@ class NoteRepository:
         self,
         note_id: str,
         user_id: str,
-        title: str,
-        content: str,
+        title: Optional[str] = None,
+        content: Optional[str] = None,
+        status: Optional[str] = None,
     ) -> None:
         conn = self.db.get_conn()
         try:
@@ -149,14 +155,15 @@ class NoteRepository:
                 cur.execute(
                     """
                     UPDATE notes
-                    SET title = %s,
-                        content = %s,
+                    SET title = COALESCE(%s, title),
+                        content = COALESCE(%s, content),
+                        status = COALESCE(%s, status),
                         updated_at = now()
                     WHERE id = %s
                       AND user_id = %s
                       AND is_deleted = false;
                     """,
-                    (title, content, note_id, user_id),
+                    (title, content, status, note_id, user_id),
                 )
                 conn.commit()
         finally:

@@ -2,7 +2,7 @@ from fastapi import FastAPI
 import uvicorn
 
 from app.core.container import Container
-
+from app.routers import user, note, tag
 
 def create_app() -> FastAPI:
     # Initialize DI container
@@ -17,12 +17,18 @@ def create_app() -> FastAPI:
     # Wire dependency-injector modules
     container.wire(
         modules=[
-            "app.api.users",
-            "app.api.notes",
+            "app.routers.user",
+            "app.routers.note",
+            "app.routers.tag",
             "app.services.user_service",
             "app.services.note_service",
+            "app.services.tag_service",
         ]
     )
+    
+    app.include_router(user.router)
+    app.include_router(note.router)
+    app.include_router(tag.router)
 
     return app
 

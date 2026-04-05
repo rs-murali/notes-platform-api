@@ -8,17 +8,17 @@ class UserService:
     def get_users(self):
         return self.user_repo.list_users()
         
-    def get_user(self, user_id: int):
+    def get_user(self, user_id: str):
         return self.user_repo.get_user_by_id(user_id)
 
     def create_user(self, user: UserCreate):
         return self.user_repo.create_user(user)
     
-    def update_user(self, user_id: int, user: UserUpdate):
+    def update_user(self, user_id: str, user: UserUpdate):
         existing_user = self.user_repo.get_user_by_id(user_id)
         if not existing_user:
             return False
-        return self.user_repo.update_user(user)
+        return self.user_repo.update_user(user_id, user)
     
-    def delete_user(self, user_id: int):
+    def delete_user(self, user_id: str):
         return self.user_repo.delete_user(user_id)
